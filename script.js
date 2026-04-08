@@ -1,22 +1,18 @@
-/**
- * SKRIPT-PARSER | THE ULTIMATE LINTER
- * Professional RegEx Edition for SKITMC Repository
- */
-
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
 let editor;
 
-require(['vs/editor/editor.main'], function() {
-    
-    // 1. LANGUAGE & SYNTAX DEFINITION
+require(['vs/editor/editor.main'], function () {
+
+    // LANGUAGE
     monaco.languages.register({ id: 'skript' });
+
     monaco.languages.setMonarchTokensProvider('skript', {
         tokenizer: {
             root: [
-                [/^(on |command |trigger|options|else|if ).*/, 'keyword'],
+                [/^(on\s.+|command\s.+|trigger|options|else if\s.+|else|if\s.+)/, 'keyword'],
                 [/(set|add|remove|give|send|broadcast|ban|kick|op|deop|stop)/, 'operator'],
-                [/({[^}]+})/, 'variable'],
+                [/\{[^}]+\}/, 'variable'],
                 [/"[^"]*"/, 'string'],
                 [/#[^#]*/, 'comment'],
                 [/<[^>]+>/, 'type-tag']
@@ -24,7 +20,7 @@ require(['vs/editor/editor.main'], function() {
         }
     });
 
-    // 2. PROFESSIONAL THEME
+    // THEME
     monaco.editor.defineTheme('sk-pro-dark', {
         base: 'vs-dark',
         inherit: true,
@@ -38,45 +34,52 @@ require(['vs/editor/editor.main'], function() {
         colors: {
             'editor.background': '#0d1117',
             'editor.lineHighlightBackground': '#161b22',
-            'editorCursor.foreground': '#58a6ff',
-            'editorIndentGuide.activeBackground': '#30363d'
+            'editorCursor.foreground': '#58a6ff'
         }
     });
 
-    // 3. EDITOR INITIALIZATION
-    const testCode = `# ==========================================\n# CONFIGURATION\n# ==========================================\noptions:\n    prefix: &4&l[BAN]\n    error: &c\n\n# ==========================================\n# THIS SCRIPT IS INTENTIONALLY BROKEN\n# ==========================================\ncommand /ban <offlineplayer> <text>:\n    permission: admin.ban\n    trigger\n        if {banned.arg-1} is true:\n            send "{@prefix} This player is already banned"\n            stop\n            \n        ban arg-1 because of arg-2\n        \n        broadcast "{@prefix} %arg-1% was banned for %arg-2"`;
-
+    // EDITOR (EMPTY + PLACEHOLDER)
     editor = monaco.editor.create(document.getElementById('monaco-editor'), {
-        value: testCode,
+        value: "",
         language: 'skript',
         theme: 'sk-pro-dark',
         fontFamily: 'JetBrains Mono, monospace',
         fontSize: 14,
         automaticLayout: true,
-        tabSize: 4,
-        insertSpaces: true,
-        minimap: { enabled: false },
-        padding: { top: 20 },
-        cursorSmoothCaretAnimation: true,
-        scrollBeyondLastLine: false
+        minimap: { enabled: false }
     });
 
-    // Linter Debounce (Runs 600ms after user stops typing)
-    let linterDebounce;
+    // Placeholder text
+    const placeholder = document.createElement('div');
+    placeholder.innerText = "ENTER SKRIPT HERE...";
+    placeholder.style.position = "absolute";
+    placeholder.style.top = "20px";
+    placeholder.style.left = "20px";
+    placeholder.style.opacity = "0.3";
+    placeholder.style.pointerEvents = "none";
+    placeholder.style.fontFamily = "JetBrains Mono";
+    placeholder.style.fontSize = "14px";
+
+    document.getElementById('monaco-editor').appendChild(placeholder);
+
     editor.onDidChangeModelContent(() => {
-        clearTimeout(linterDebounce);
-        linterDebounce = setTimeout(runDiagnostics, 600);
+        placeholder.style.display = editor.getValue() ? "none" : "block";
     });
 
-    // Run initial scan
-    setTimeout(runDiagnostics, 500);
+    // Debounce
+    let debounce;
+    editor.onDidChangeModelContent(() => {
+        clearTimeout(debounce);
+        debounce = setTimeout(runDiagnostics, 500);
+    });
 });
 
 /**
- * THE LINTER: Finds errors using strict RegEx
+ * SMART DIAGNOSTICS
  */
 function runDiagnostics() {
     if (!editor) return;
+
     const model = editor.getModel();
     const lines = model.getLinesContent();
     let markers = [];
@@ -85,46 +88,54 @@ function runDiagnostics() {
     lines.forEach((line, i) => {
         const lineNum = i + 1;
         const trimmed = line.trim();
-        
-        // Ignore empty lines and comments
+
         if (!trimmed || trimmed.startsWith('#')) return;
 
-        // 1. Missing Colons
-        if (/^(on |command |trigger|options|else|if )/.test(trimmed) && !trimmed.endsWith(':')) {
+        const isHeader = /^(on\s.+|command\s.+|options|if\s.+|else if\s.+|else)$/.test(trimmed);
+
+        // Missing colon
+        if (isHeader && !trimmed.endsWith(':')) {
             errorCount++;
-            markers.push(createMarker(lineNum, line, 'Missing colon (:) at end of header.'));
+            markers.push(createMarker(lineNum, line, 'Missing ":" at end of statement.'));
         }
 
-        // 2. Invalid Type
+        // Warning: offlineplayer
         if (/<offlineplayer>/i.test(trimmed)) {
-            errorCount++;
-            markers.push(createMarker(lineNum, line, 'Invalid type. Use <offline player>.'));
-        }
-
-        // 3. Static Dot Variables (e.g. {banned.arg-1})
-        if (/\{[a-zA-Z0-9_-]+\.arg-\d+\}/.test(trimmed)) {
-            errorCount++;
             markers.push({
-                severity: monaco.MarkerSeverity.Warning, // Warning level for bad practices
-                message: 'Improper variable nesting. Use lists with UUIDs: {list::%uuid of player%}',
+                severity: monaco.MarkerSeverity.Warning,
+                message: 'Use "<offline player>" (recommended format).',
                 startLineNumber: lineNum,
-                startColumn: line.indexOf('{') + 1,
+                startColumn: 1,
                 endLineNumber: lineNum,
-                endColumn: line.indexOf('}') + 2
+                endColumn: line.length + 1
             });
         }
 
-        // 4. Invalid Ban Syntax
-        if (/ban .+ because of .+/.test(trimmed)) {
-            errorCount++;
-            markers.push(createMarker(lineNum, line, 'Invalid syntax. Use "due to" instead of "because of".'));
+        // Variable warning
+        if (/\{[^}]+\.arg-\d+\}/.test(trimmed)) {
+            markers.push({
+                severity: monaco.MarkerSeverity.Warning,
+                message: 'Avoid .arg-# inside variables. Use UUID lists.',
+                startLineNumber: lineNum,
+                startColumn: 1,
+                endLineNumber: lineNum,
+                endColumn: line.length + 1
+            });
         }
 
-        // 5. Unclosed Percent Signs
-        const percentMatches = line.match(/%/g);
+        // Bad syntax
+        if (/ban .+ because of .+/.test(trimmed)) {
+            errorCount++;
+            markers.push(createMarker(lineNum, line, 'Use "due to" instead of "because of".'));
+        }
+
+        // Percent check (safe)
+        const clean = line.replace(/"[^"]*"/g, '');
+        const percentMatches = clean.match(/%/g);
+
         if (percentMatches && percentMatches.length % 2 !== 0) {
             errorCount++;
-            markers.push(createMarker(lineNum, line, 'Unclosed percent sign (%). Variable will crash script.'));
+            markers.push(createMarker(lineNum, line, 'Unclosed % variable.'));
         }
     });
 
@@ -132,62 +143,66 @@ function runDiagnostics() {
     updateUI(errorCount);
 }
 
+/**
+ * MARKER
+ */
 function createMarker(lineNum, content, msg) {
     return {
         severity: monaco.MarkerSeverity.Error,
         message: msg,
         startLineNumber: lineNum,
-        startColumn: content.length - content.trimLeft().length + 1, // Start underline at actual text
+        startColumn: 1,
         endLineNumber: lineNum,
         endColumn: content.length + 1
     };
 }
 
 /**
- * THE FIXER: Safely patches code using RegEx
+ * AUTO FIX (SAFE)
  */
 function applyAutoFix() {
     if (!editor) return;
+
     const model = editor.getModel();
     const lines = model.getLinesContent();
-    
-    const fixedLines = lines.map(line => {
-        // Skip comments to prevent accidental replacement inside notes
+
+    const fixed = lines.map(line => {
         if (line.trim().startsWith('#')) return line;
 
         let patched = line;
+        const trimmed = patched.trim();
 
-        // Fix 1: Colons
-        if (/^(on |command |trigger|options|else|if )/.test(patched.trim()) && !patched.trim().endsWith(':')) {
-            patched = patched + ':';
+        const isHeader = /^(on\s.+|command\s.+|options|if\s.+|else if\s.+|else)$/.test(trimmed);
+
+        // Colon fix
+        if (isHeader && !trimmed.endsWith(':')) {
+            patched += ':';
         }
 
-        // Fix 2: <offlineplayer> -> <offline player>
+        // Type fix
         patched = patched.replace(/<offlineplayer>/gi, '<offline player>');
 
-        // Fix 3: ban because of -> due to
-        patched = patched.replace(/(ban\s+.+?)\s+because of\s+(.+)/gi, '$1 due to $2');
+        // Syntax fix (only outside strings)
+        if (!patched.includes('"')) {
+            patched = patched.replace(/(ban\s+.+?)\s+because of\s+(.+)/gi, '$1 due to $2');
+        }
 
-        // Fix 4: Convert {var.arg-1} to {var::%uuid of arg-1%}
+        // Variable fix
         patched = patched.replace(/\{([a-zA-Z0-9_-]+)\.arg-(\d+)\}/gi, '{$1::%uuid of arg-$2%}');
-
-        // Fix 5: Missing percent sign before a closing quote
-        patched = patched.replace(/%([a-zA-Z0-9_-]+)"/g, '%$1%"');
 
         return patched;
     });
 
-    // Apply the edit safely so user can undo it if needed
-    editor.executeEdits("ai-fixer", [{
+    editor.executeEdits("fix", [{
         range: model.getFullModelRange(),
-        text: fixedLines.join('\n')
+        text: fixed.join('\n')
     }]);
 
     runDiagnostics();
 }
 
 /**
- * DOM UPDATER: Handles the Sidebar LED and Console
+ * UI UPDATE
  */
 function updateUI(errorCount) {
     const led = document.getElementById('status-led');
@@ -195,19 +210,14 @@ function updateUI(errorCount) {
     const logs = document.getElementById('console-logs');
 
     if (errorCount > 0) {
-        if (led) led.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]";
-        if (text) text.innerText = `${errorCount} Issues Detected`;
-        
-        // Add a log entry if we don't already have one for this state
-        if (logs && !logs.innerHTML.includes(`Scanner found ${errorCount} errors`)) {
-            logs.innerHTML += `<div class="text-red-400 border-l-2 border-red-500/30 pl-3 py-1">> Scanner found ${errorCount} errors.</div>`;
-        }
+        led.className = "w-2.5 h-2.5 rounded-full bg-red-500";
+        text.innerText = `${errorCount} Issues Found`;
+        logs.innerHTML += `<div class="text-red-400">> Found ${errorCount} issues</div>`;
     } else {
-        if (led) led.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_#238636]";
-        if (text) text.innerText = "All Clear";
-        if (logs) logs.innerHTML += `<div class="text-green-400 border-l-2 border-green-500/30 pl-3 py-1">> Auto-fix applied. System nominal.</div>`;
+        led.className = "w-2.5 h-2.5 rounded-full bg-green-500";
+        text.innerText = "Clean";
+        logs.innerHTML += `<div class="text-green-400">> No issues detected</div>`;
     }
-    
-    // Auto-scroll the console
-    if (logs) logs.scrollTop = logs.scrollHeight;
+
+    logs.scrollTop = logs.scrollHeight;
 }
