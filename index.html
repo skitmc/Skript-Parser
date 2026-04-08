@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skript-Parser | Online Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { height: 100%; margin: 0; background-color: #1e1e1e; color: white; overflow: hidden; }
+        #container { height: calc(100vh - 60px); width: 100%; }
+        .footer { position: absolute; bottom: 15px; right: 20px; font-size: 0.85rem; color: #888; }
+    </style>
+</head>
+<body>
+
+    <nav class="flex items-center justify-between px-6 py-3 bg-[#252526] border-b border-[#333]">
+        <h1 class="text-xl font-bold tracking-tight text-blue-400">Skript-Parser</h1>
+        <div class="space-x-4">
+            <button onclick="checkSyntax()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1 rounded transition">Analyze Code</button>
+        </div>
+    </nav>
+
+    <div id="container"></div>
+
+    <div class="footer">
+        This is a community-based project to help with the skript repository that <strong>SKITMC</strong> is currently developing.
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
