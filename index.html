@@ -13,13 +13,13 @@
 
 <style>
 :root {
-    --bg: #0a0f1a;
-    --card: rgba(22, 27, 34, 0.6);
+    --bg: #020617;
+    --card: rgba(22, 27, 34, 0.7);
     --border: rgba(255,255,255,0.08);
     --accent: #58a6ff;
 }
 
-/* Base */
+/* BASE */
 body {
     background: radial-gradient(circle at top, #0f172a, #020617);
     color: #c9d1d9;
@@ -31,51 +31,55 @@ body {
     overflow: hidden;
 }
 
-/* Glow effect */
-.glow {
-    box-shadow: 0 0 40px rgba(88,166,255,0.15);
-}
-
-/* Glass card */
+/* GLASS */
 .glass {
     background: var(--card);
-    backdrop-filter: blur(14px);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
 }
 
-/* Logo */
+/* GLOW */
+.glow {
+    box-shadow: 0 0 30px rgba(88,166,255,0.15);
+}
+
+/* LOGO */
 .logo-text {
     font-weight: 800;
     font-size: 1.4rem;
     letter-spacing: -0.02em;
 }
 
+/* FIXED GRADIENT TEXT */
 .logo-text span {
-    background: linear-gradient(90deg,#58a6ff,#3b82f6);
+    background: linear-gradient(90deg, #58a6ff, #3b82f6);
+    color: #58a6ff; /* fallback */
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-/* Editor */
+/* EDITOR */
 #monaco-editor {
     flex: 1;
+    height: 100%;
 }
 
-/* Sidebar */
+/* SIDEBAR */
 .sidebar {
     width: 360px;
     display: flex;
     flex-direction: column;
 }
 
-/* Console */
+/* CONSOLE */
 .console {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     overflow-y: auto;
 }
 
-/* Scrollbar */
+/* SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb {
     background: rgba(255,255,255,0.1);
@@ -90,9 +94,12 @@ body {
 <header class="h-16 flex items-center justify-between px-8 glass border-b border-white/5">
 
     <div class="flex items-center gap-4">
-        <div class="logo-text">SKRIPT<span> ENGINE</span></div>
+        <div class="logo-text">
+            SKRIPT<span>-PARSER</span>
+        </div>
+
         <span class="text-[10px] px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold tracking-widest">
-            PRO
+            PRO ENGINE
         </span>
     </div>
 
@@ -103,7 +110,7 @@ body {
             glass hover:bg-white/10 transition glow">
 
             <i data-lucide="wand-2" class="w-4 h-4 text-orange-400"></i>
-            Auto Fix
+            FIX CODE
         </button>
 
         <button onclick="runDiagnostics()"
@@ -111,7 +118,7 @@ body {
             bg-gradient-to-r from-blue-600 to-blue-500 hover:opacity-90 transition shadow-lg glow">
 
             <i data-lucide="play" class="w-4 h-4"></i>
-            Analyze
+            ANALYZE
         </button>
 
     </div>
@@ -130,7 +137,9 @@ body {
 
         <!-- STATUS -->
         <div class="p-6 border-b border-white/5">
-            <h3 class="text-[10px] uppercase tracking-widest text-slate-400 mb-4">System Status</h3>
+            <h3 class="text-[10px] uppercase tracking-widest text-slate-400 mb-4">
+                SYSTEM STATUS
+            </h3>
 
             <div class="glass p-4 rounded-xl glow">
                 <div class="flex items-center gap-3 mb-2">
@@ -148,7 +157,9 @@ body {
 
         <!-- CONSOLE -->
         <div class="p-6 flex-1 flex flex-col min-h-0">
-            <h3 class="text-[10px] uppercase tracking-widest text-slate-400 mb-4">Console</h3>
+            <h3 class="text-[10px] uppercase tracking-widest text-slate-400 mb-4">
+                CONSOLE
+            </h3>
 
             <div id="console-logs" class="console space-y-2 flex-1">
                 <div class="opacity-50 border-l-2 border-white/10 pl-3">
@@ -159,13 +170,14 @@ body {
 
         <!-- FOOTER -->
         <div class="p-5 border-t border-white/5 text-[10px] text-slate-500">
-            SKITMC Skript Engine • Next-gen parsing system
+            SKITMC Skript Engine • Professional Parsing System
         </div>
 
     </aside>
 
 </main>
 
+<!-- SCRIPTS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 <script src="script.js"></script>
 
