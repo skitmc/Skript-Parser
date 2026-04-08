@@ -1,85 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript-Parser | SKITMC IDE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root { --bg: #0d1117; --side: #161b22; --brd: #30363d; --accent: #58a6ff; }
-        body { background: var(--bg); color: #c9d1d9; font-family: 'Inter', sans-serif; height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* Logo */
-        .logo-text { font-weight: 800; font-size: 1.3rem; color: #fff; letter-spacing: -0.02em; }
-        .logo-text span { color: var(--accent); }
-        
-        /* Layout */
-        #monaco-editor { flex: 1; height: 100%; }
-        .sidebar { background: var(--side); border-left: 1px solid var(--brd); width: 350px; display: flex; flex-direction: column; z-index: 10; }
-        
-        /* UI Elements */
-        .status-card { background: #0d1117; border: 1px solid var(--brd); border-radius: 8px; padding: 16px; }
-        .console { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b949e; overflow-y: auto; flex: 1; }
-        
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Skript Parser | SKITMC IDE</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --bg: #0a0f1a;
+    --card: rgba(22, 27, 34, 0.6);
+    --border: rgba(255,255,255,0.08);
+    --accent: #58a6ff;
+}
+
+/* Base */
+body {
+    background: radial-gradient(circle at top, #0f172a, #020617);
+    color: #c9d1d9;
+    font-family: 'Inter', sans-serif;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Glow effect */
+.glow {
+    box-shadow: 0 0 40px rgba(88,166,255,0.15);
+}
+
+/* Glass card */
+.glass {
+    background: var(--card);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+}
+
+/* Logo */
+.logo-text {
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+}
+
+.logo-text span {
+    background: linear-gradient(90deg,#58a6ff,#3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Editor */
+#monaco-editor {
+    flex: 1;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 360px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Console */
+.console {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    overflow-y: auto;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+</style>
 </head>
-<body class="flex flex-col">
 
-    <header class="h-16 flex items-center justify-between px-8 bg-[#161b22] border-b border-[#30363d] z-50">
-        <div class="flex items-center gap-4">
-            <div class="logo-text">SKRIPT<span>-PARSER</span></div>
-            <span class="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded border border-blue-500/20 font-bold tracking-widest">PRO ENGINE</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <button onclick="applyAutoFix()" class="flex items-center gap-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-xs font-bold px-4 py-2 rounded-md border border-[#30363d] transition-all">
-                <i data-lucide="wrench" class="w-4 h-4 text-orange-400"></i> FIX CODE
-            </button>
-            <button onclick="runDiagnostics()" class="flex items-center gap-2 bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-bold px-5 py-2 rounded-md transition-all shadow-lg">
-                <i data-lucide="play" class="w-4 h-4 fill-current"></i> ANALYZE
-            </button>
-        </div>
-    </header>
+<body>
 
-    <main class="flex flex-1 overflow-hidden">
+<!-- HEADER -->
+<header class="h-16 flex items-center justify-between px-8 glass border-b border-white/5">
+
+    <div class="flex items-center gap-4">
+        <div class="logo-text">SKRIPT<span> ENGINE</span></div>
+        <span class="text-[10px] px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold tracking-widest">
+            PRO
+        </span>
+    </div>
+
+    <div class="flex items-center gap-3">
+
+        <button onclick="applyAutoFix()"
+            class="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg
+            glass hover:bg-white/10 transition glow">
+
+            <i data-lucide="wand-2" class="w-4 h-4 text-orange-400"></i>
+            Auto Fix
+        </button>
+
+        <button onclick="runDiagnostics()"
+            class="flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-lg
+            bg-gradient-to-r from-blue-600 to-blue-500 hover:opacity-90 transition shadow-lg glow">
+
+            <i data-lucide="play" class="w-4 h-4"></i>
+            Analyze
+        </button>
+
+    </div>
+</header>
+
+<!-- MAIN -->
+<main class="flex flex-1 overflow-hidden">
+
+    <!-- EDITOR -->
+    <div class="flex-1 relative">
         <div id="monaco-editor"></div>
-        
-        <aside class="sidebar">
-            <div class="p-6 border-b border-[#30363d]">
-                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Diagnostics</h3>
-                <div class="status-card">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div id="status-led" class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_#58a6ff]"></div>
-                        <span id="status-text" class="text-xs font-bold text-white">System Loading...</span>
-                    </div>
-                    <p class="text-[11px] text-slate-500 leading-relaxed">Parser optimized for the SKITMC repository standards.</p>
-                </div>
-            </div>
-            
-            <div class="p-6 flex-1 flex flex-col min-h-0">
-                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Live Console</h3>
-                <div id="console-logs" class="console space-y-2">
-                    <div class="opacity-50 border-l-2 border-[#30363d] pl-3">> Initializing workspace...</div>
-                </div>
-            </div>
-            
-            <div class="p-6 border-t border-[#30363d] text-[10px] text-slate-600 italic">
-                This community-based project supports the Skript repository that <strong>SKITMC</strong> is developing.
-            </div>
-        </aside>
-    </main>
+    </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-    <script src="script.js"></script>
-    <script>
-        // Render the Lucide icons
-        lucide.createIcons();
-    </script>
+    <!-- SIDEBAR -->
+    <aside class="sidebar glass border-l border-white/5">
+
+        <!-- STATUS -->
+        <div class="p-6 border-b border-white/5">
+            <h3 class="text-[10px] uppercase tracking-widest text-slate-400 mb-4">System Status</h3>
+
+            <div class="glass p-4 rounded-xl glow">
+                <div class="flex items-center gap-3 mb-2">
+                    <div id="status-led" class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
+                    <span id="status-text" class="text-sm font-semibold text-white">
+                        Initializing...
+                    </span>
+                </div>
+
+                <p class="text-xs text-slate-400">
+                    Advanced Skript parsing engine optimized for performance & accuracy.
+                </p>
+            </div>
+        </div>
+
+        <!-- CONSOLE -->
+        <div class="p-6 flex-1 flex flex-col min-h-0">
+            <h3 class="text-[10px] uppercase tracking-widest text-slate-400 mb-4">Console</h3>
+
+            <div id="console-logs" class="console space-y-2 flex-1">
+                <div class="opacity-50 border-l-2 border-white/10 pl-3">
+                    > Booting engine...
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="p-5 border-t border-white/5 text-[10px] text-slate-500">
+            SKITMC Skript Engine • Next-gen parsing system
+        </div>
+
+    </aside>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+<script src="script.js"></script>
+
+<script>
+lucide.createIcons();
+</script>
+
 </body>
 </html>
