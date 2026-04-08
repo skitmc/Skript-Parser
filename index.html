@@ -3,87 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript-Parser | IDE</title>
+    <title>Skript-Parser | SKITMC IDE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-main: #0d1117;
-            --bg-side: #161b22;
-            --border: #30363d;
-            --cyan-accent: #58a6ff;
-        }
-        body { background-color: var(--bg-main); color: #c9d1d9; font-family: 'Inter', sans-serif; height: 100vh; margin: 0; overflow: hidden; }
+        :root { --bg: #0d1117; --side: #161b22; --brd: #30363d; --accent: #58a6ff; }
+        body { background: var(--bg); color: #c9d1d9; font-family: 'Inter', sans-serif; height: 100vh; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* Clean Professional Logo */
-        .logo-text {
-            font-weight: 800;
-            font-size: 1.25rem;
-            color: #ffffff;
-            letter-spacing: -0.02em;
-        }
-        .logo-text span { color: var(--cyan-accent); }
-
-        .sidebar { background: var(--bg-side); border-left: 1px solid var(--border); width: 340px; display: flex; flex-direction: column; }
+        /* Logo */
+        .logo-text { font-weight: 800; font-size: 1.3rem; color: #fff; letter-spacing: -0.02em; }
+        .logo-text span { color: var(--accent); }
+        
+        /* Layout */
         #monaco-editor { flex: 1; height: 100%; }
+        .sidebar { background: var(--side); border-left: 1px solid var(--brd); width: 350px; display: flex; flex-direction: column; z-index: 10; }
         
-        .btn-primary { background: #238636; color: white; transition: 0.2s; }
-        .btn-primary:hover { background: #2ea043; }
+        /* UI Elements */
+        .status-card { background: #0d1117; border: 1px solid var(--brd); border-radius: 8px; padding: 16px; }
+        .console { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b949e; overflow-y: auto; flex: 1; }
         
-        .btn-secondary { background: #21262d; border: 1px solid var(--border); color: #c9d1d9; transition: 0.2s; }
-        .btn-secondary:hover { background: #30363d; }
-
-        .console-box { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b949e; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
     </style>
 </head>
 <body class="flex flex-col">
 
-    <header class="h-14 flex items-center justify-between px-6 bg-[#161b22] border-b border-[#30363d]">
-        <div class="flex items-center gap-3">
+    <header class="h-16 flex items-center justify-between px-8 bg-[#161b22] border-b border-[#30363d] z-50">
+        <div class="flex items-center gap-4">
             <div class="logo-text">SKRIPT<span>-PARSER</span></div>
-            <span class="text-[10px] text-[#484f58] font-bold border border-[#30363d] px-2 py-0.5 rounded">STABLE</span>
+            <span class="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded border border-blue-500/20 font-bold tracking-widest">PRO ENGINE</span>
         </div>
-        <div class="flex items-center gap-2">
-            <button onclick="applyAutoFix()" class="btn-secondary flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold">
-                <i data-lucide="wrench" class="w-3.5 h-3.5"></i> Fix Syntax
+        <div class="flex items-center gap-3">
+            <button onclick="applyAutoFix()" class="flex items-center gap-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] text-xs font-bold px-4 py-2 rounded-md border border-[#30363d] transition-all">
+                <i data-lucide="wrench" class="w-4 h-4 text-orange-400"></i> FIX CODE
             </button>
-            <button onclick="runAnalysis()" class="btn-primary flex items-center gap-2 px-4 py-1.5 rounded text-xs font-semibold">
-                <i data-lucide="play" class="w-3.5 h-3.5"></i> Run Analysis
+            <button onclick="runDiagnostics()" class="flex items-center gap-2 bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-bold px-5 py-2 rounded-md transition-all shadow-lg">
+                <i data-lucide="play" class="w-4 h-4 fill-current"></i> ANALYZE
             </button>
         </div>
     </header>
 
     <main class="flex flex-1 overflow-hidden">
         <div id="monaco-editor"></div>
-
+        
         <aside class="sidebar">
-            <div class="p-5 border-b border-[#30363d]">
-                <div class="text-[10px] font-bold text-[#8b949e] uppercase tracking-widest mb-3">System Health</div>
-                <div class="bg-[#0d1117] border border-[#30363d] rounded-lg p-3">
-                    <div class="flex items-center gap-2 mb-1">
-                        <div id="status-led" class="w-2 h-2 rounded-full bg-green-500"></div>
-                        <span id="status-text" class="text-xs font-bold text-white">Parser Online</span>
+            <div class="p-6 border-b border-[#30363d]">
+                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Diagnostics</h3>
+                <div class="status-card">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div id="status-led" class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_#58a6ff]"></div>
+                        <span id="status-text" class="text-xs font-bold text-white">System Loading...</span>
                     </div>
-                    <p class="text-[11px] text-[#8b949e]">Engine linked to SKITMC repository.</p>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">Parser optimized for the SKITMC repository standards.</p>
                 </div>
             </div>
-
-            <div class="flex-1 p-5 overflow-y-auto">
-                <div class="text-[10px] font-bold text-[#8b949e] uppercase tracking-widest mb-3">Console</div>
-                <div id="console-logs" class="console-box space-y-2">
-                    <div class="opacity-50">> Initializing workspace...</div>
+            
+            <div class="p-6 flex-1 flex flex-col min-h-0">
+                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Live Console</h3>
+                <div id="console-logs" class="console space-y-2">
+                    <div class="opacity-50 border-l-2 border-[#30363d] pl-3">> Initializing workspace...</div>
                 </div>
             </div>
-
-            <div class="p-5 text-[10px] text-[#484f58] border-t border-[#30363d]">
-                This community project supports the **SKITMC** repository development effort.
+            
+            <div class="p-6 border-t border-[#30363d] text-[10px] text-slate-600 italic">
+                This community-based project supports the Skript repository that <strong>SKITMC</strong> is developing.
             </div>
         </aside>
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
     <script src="script.js"></script>
-    <script>lucide.createIcons();</script>
+    <script>
+        // Render the Lucide icons
+        lucide.createIcons();
+    </script>
 </body>
 </html>

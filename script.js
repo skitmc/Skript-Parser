@@ -1,6 +1,6 @@
 /**
  * SKRIPT-PARSER | THE ULTIMATE LINTER
- * Professional Edition for SKITMC Repository
+ * Professional RegEx Edition for SKITMC Repository
  */
 
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
@@ -9,17 +9,13 @@ let editor;
 
 require(['vs/editor/editor.main'], function() {
     
-    // 1. ADVANCED SYNTX HIGHLIGHTING
+    // 1. LANGUAGE & SYNTAX DEFINITION
     monaco.languages.register({ id: 'skript' });
     monaco.languages.setMonarchTokensProvider('skript', {
         tokenizer: {
             root: [
-                [/on (join|quit|death|break|place|chat|rightclick|leftclick|load|unload|respawn):?/, 'keyword'],
-                [/command \/\w+:?/, 'keyword'],
-                [/trigger:?/, 'keyword'],
-                [/options:?/, 'keyword'],
-                [/if |else |loop |while |return |stop |exit |cancel event/, 'keyword'],
-                [/set |add |remove |give |send |broadcast |ban |kick |op |deop/, 'operator'],
+                [/^(on |command |trigger|options|else|if ).*/, 'keyword'],
+                [/(set|add|remove|give|send|broadcast|ban|kick|op|deop|stop)/, 'operator'],
                 [/({[^}]+})/, 'variable'],
                 [/"[^"]*"/, 'string'],
                 [/#[^#]*/, 'comment'],
@@ -28,7 +24,7 @@ require(['vs/editor/editor.main'], function() {
         }
     });
 
-    // 2. THEME DEFINITION
+    // 2. PROFESSIONAL THEME
     monaco.editor.defineTheme('sk-pro-dark', {
         base: 'vs-dark',
         inherit: true,
@@ -43,16 +39,15 @@ require(['vs/editor/editor.main'], function() {
             'editor.background': '#0d1117',
             'editor.lineHighlightBackground': '#161b22',
             'editorCursor.foreground': '#58a6ff',
-            'editorIndentGuide.activeBackground': '#30363d',
-            'editorError.foreground': '#f85149'
+            'editorIndentGuide.activeBackground': '#30363d'
         }
     });
 
-    // 3. EDITOR INSTANTIATION
-    const startingCode = `# ==========================================\n# CONFIGURATION\n# ==========================================\noptions:\n    prefix: &4&l[BAN]\n    error: &c\n\n# ==========================================\n# THIS SCRIPT IS INTENTIONALLY BROKEN\n# ==========================================\ncommand /ban <offlineplayer> <text>:\n    permission: admin.ban\n    trigger\n        if {banned.arg-1} is true:\n            send "{@prefix} This message will never send!"\n            stop\n            \n        ban arg-1 because of arg-2\n        \n        broadcast "{@prefix} %arg-1% was banned for %arg-2"`;
+    // 3. EDITOR INITIALIZATION
+    const testCode = `# ==========================================\n# CONFIGURATION\n# ==========================================\noptions:\n    prefix: &4&l[BAN]\n    error: &c\n\n# ==========================================\n# THIS SCRIPT IS INTENTIONALLY BROKEN\n# ==========================================\ncommand /ban <offlineplayer> <text>:\n    permission: admin.ban\n    trigger\n        if {banned.arg-1} is true:\n            send "{@prefix} This player is already banned"\n            stop\n            \n        ban arg-1 because of arg-2\n        \n        broadcast "{@prefix} %arg-1% was banned for %arg-2"`;
 
     editor = monaco.editor.create(document.getElementById('monaco-editor'), {
-        value: startingCode,
+        value: testCode,
         language: 'skript',
         theme: 'sk-pro-dark',
         fontFamily: 'JetBrains Mono, monospace',
@@ -62,142 +57,157 @@ require(['vs/editor/editor.main'], function() {
         insertSpaces: true,
         minimap: { enabled: false },
         padding: { top: 20 },
-        cursorBlinking: 'smooth',
-        cursorSmoothCaretAnimation: true
+        cursorSmoothCaretAnimation: true,
+        scrollBeyondLastLine: false
     });
 
-    // 4. LINTER INITIALIZATION
+    // Linter Debounce (Runs 600ms after user stops typing)
     let linterDebounce;
     editor.onDidChangeModelContent(() => {
         clearTimeout(linterDebounce);
-        linterDebounce = setTimeout(runFullDiagnostics, 800);
+        linterDebounce = setTimeout(runDiagnostics, 600);
     });
 
-    setTimeout(runFullDiagnostics, 500);
+    // Run initial scan
+    setTimeout(runDiagnostics, 500);
 });
 
 /**
- * ENGINE: DIAGNOSTICS
- * This is where the 300+ line logic lives.
+ * THE LINTER: Finds errors using strict RegEx
  */
-function runFullDiagnostics() {
+function runDiagnostics() {
     if (!editor) return;
-    
     const model = editor.getModel();
     const lines = model.getLinesContent();
     let markers = [];
-    let logBuffer = [];
+    let errorCount = 0;
 
-    lines.forEach((content, i) => {
+    lines.forEach((line, i) => {
         const lineNum = i + 1;
-        const trimmed = content.trim();
+        const trimmed = line.trim();
+        
+        // Ignore empty lines and comments
         if (!trimmed || trimmed.startsWith('#')) return;
 
-        // RULE 1: MISSING COLONS ON HEADERS
-        const headers = ['on ', 'command ', 'trigger', 'options', 'else', 'if '];
-        headers.forEach(h => {
-            if (trimmed.startsWith(h) && !trimmed.endsWith(':')) {
-                markers.push(createMarker(lineNum, content, 'Missing colon (:) at end of block.'));
-                logBuffer.push(`Line ${lineNum}: Missing colon.`);
-            }
-        });
-
-        // RULE 2: UNCLOSED PERCENT SIGNS (The Variable Killer)
-        const percentCount = (content.match(/%/g) || []).length;
-        if (percentCount % 2 !== 0) {
-            markers.push(createMarker(lineNum, content, 'Unclosed percent sign (%). Variable must be wrapped in %..%'));
-            logBuffer.push(`Line ${lineNum}: Percent sign mismatch.`);
+        // 1. Missing Colons
+        if (/^(on |command |trigger|options|else|if )/.test(trimmed) && !trimmed.endsWith(':')) {
+            errorCount++;
+            markers.push(createMarker(lineNum, line, 'Missing colon (:) at end of header.'));
         }
 
-        // RULE 3: INVALID TYPES (offlineplayer)
-        if (content.includes('<offlineplayer>')) {
-            markers.push(createMarker(lineNum, content, 'Invalid type: Use <offline player> instead.'));
-            logBuffer.push(`Line ${lineNum}: Wrong type syntax.`);
+        // 2. Invalid Type
+        if (/<offlineplayer>/i.test(trimmed)) {
+            errorCount++;
+            markers.push(createMarker(lineNum, line, 'Invalid type. Use <offline player>.'));
         }
 
-        // RULE 4: STATIC VARIABLE DOTS (VS LISTS)
-        if (trimmed.includes('{') && trimmed.includes('.') && !trimmed.includes('::')) {
+        // 3. Static Dot Variables (e.g. {banned.arg-1})
+        if (/\{[a-zA-Z0-9_-]+\.arg-\d+\}/.test(trimmed)) {
+            errorCount++;
             markers.push({
-                severity: monaco.MarkerSeverity.Warning, // Warning, not Error
-                message: 'Non-list variable detected. Use {list::name} for better data management.',
+                severity: monaco.MarkerSeverity.Warning, // Warning level for bad practices
+                message: 'Improper variable nesting. Use lists with UUIDs: {list::%uuid of player%}',
                 startLineNumber: lineNum,
-                startColumn: content.indexOf('{') + 1,
+                startColumn: line.indexOf('{') + 1,
                 endLineNumber: lineNum,
-                endColumn: content.indexOf('}') + 2
+                endColumn: line.indexOf('}') + 2
             });
         }
 
-        // RULE 5: INVALID BAN SYNTAX
-        if (trimmed.includes('ban ') && trimmed.includes('because of')) {
-            markers.push(createMarker(lineNum, content, 'Invalid Effect: Use "ban %player% due to %text%"'));
-            logBuffer.push(`Line ${lineNum}: Ban syntax error.`);
+        // 4. Invalid Ban Syntax
+        if (/ban .+ because of .+/.test(trimmed)) {
+            errorCount++;
+            markers.push(createMarker(lineNum, line, 'Invalid syntax. Use "due to" instead of "because of".'));
+        }
+
+        // 5. Unclosed Percent Signs
+        const percentMatches = line.match(/%/g);
+        if (percentMatches && percentMatches.length % 2 !== 0) {
+            errorCount++;
+            markers.push(createMarker(lineNum, line, 'Unclosed percent sign (%). Variable will crash script.'));
         }
     });
 
     monaco.editor.setModelMarkers(model, 'owner', markers);
-    updateUI(markers.length, logBuffer);
+    updateUI(errorCount);
 }
 
-function createMarker(line, content, msg) {
+function createMarker(lineNum, content, msg) {
     return {
         severity: monaco.MarkerSeverity.Error,
         message: msg,
-        startLineNumber: line,
-        startColumn: 1,
-        endLineNumber: line,
+        startLineNumber: lineNum,
+        startColumn: content.length - content.trimLeft().length + 1, // Start underline at actual text
+        endLineNumber: lineNum,
         endColumn: content.length + 1
     };
 }
 
 /**
- * ENGINE: AUTO-FIX
+ * THE FIXER: Safely patches code using RegEx
  */
 function applyAutoFix() {
+    if (!editor) return;
     const model = editor.getModel();
     const lines = model.getLinesContent();
     
-    const fixed = lines.map(line => {
-        let l = line;
-        const t = l.trim();
+    const fixedLines = lines.map(line => {
+        // Skip comments to prevent accidental replacement inside notes
+        if (line.trim().startsWith('#')) return line;
+
+        let patched = line;
 
         // Fix 1: Colons
-        const headers = ['on ', 'command ', 'trigger', 'options', 'else', 'if '];
-        headers.forEach(h => {
-            if (t.startsWith(h) && !t.endsWith(':')) l += ':';
-        });
-
-        // Fix 2: Offline Player
-        l = l.replace('<offlineplayer>', '<offline player>');
-
-        // Fix 3: Ban syntax
-        l = l.replace('because of', 'due to');
-
-        // Fix 4: Percent mismatch (attempts to close it at the end of string)
-        if ((l.match(/%/g) || []).length % 2 !== 0 && l.includes('"')) {
-            l = l.replace(/"$/, '%"');
+        if (/^(on |command |trigger|options|else|if )/.test(patched.trim()) && !patched.trim().endsWith(':')) {
+            patched = patched + ':';
         }
 
-        return l;
-    }).join('\n');
+        // Fix 2: <offlineplayer> -> <offline player>
+        patched = patched.replace(/<offlineplayer>/gi, '<offline player>');
 
-    editor.executeEdits("fixer", [{ range: model.getFullModelRange(), text: fixed }]);
-    runFullDiagnostics();
+        // Fix 3: ban because of -> due to
+        patched = patched.replace(/(ban\s+.+?)\s+because of\s+(.+)/gi, '$1 due to $2');
+
+        // Fix 4: Convert {var.arg-1} to {var::%uuid of arg-1%}
+        patched = patched.replace(/\{([a-zA-Z0-9_-]+)\.arg-(\d+)\}/gi, '{$1::%uuid of arg-$2%}');
+
+        // Fix 5: Missing percent sign before a closing quote
+        patched = patched.replace(/%([a-zA-Z0-9_-]+)"/g, '%$1%"');
+
+        return patched;
+    });
+
+    // Apply the edit safely so user can undo it if needed
+    editor.executeEdits("ai-fixer", [{
+        range: model.getFullModelRange(),
+        text: fixedLines.join('\n')
+    }]);
+
+    runDiagnostics();
 }
 
-function updateUI(errorCount, logBuffer) {
+/**
+ * DOM UPDATER: Handles the Sidebar LED and Console
+ */
+function updateUI(errorCount) {
     const led = document.getElementById('status-led');
     const text = document.getElementById('status-text');
     const logs = document.getElementById('console-logs');
 
     if (errorCount > 0) {
-        led.className = "w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]";
-        text.innerText = `${errorCount} Issues Detected`;
-        if (logBuffer.length > 0) {
-            logs.innerHTML += `<div class="text-red-400 border-l-2 border-red-500/30 pl-3">> ${logBuffer[0]}</div>`;
+        if (led) led.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]";
+        if (text) text.innerText = `${errorCount} Issues Detected`;
+        
+        // Add a log entry if we don't already have one for this state
+        if (logs && !logs.innerHTML.includes(`Scanner found ${errorCount} errors`)) {
+            logs.innerHTML += `<div class="text-red-400 border-l-2 border-red-500/30 pl-3 py-1">> Scanner found ${errorCount} errors.</div>`;
         }
     } else {
-        led.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#238636]";
-        text.innerText = "All Clear";
+        if (led) led.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_#238636]";
+        if (text) text.innerText = "All Clear";
+        if (logs) logs.innerHTML += `<div class="text-green-400 border-l-2 border-green-500/30 pl-3 py-1">> Auto-fix applied. System nominal.</div>`;
     }
-    logs.scrollTop = logs.scrollHeight;
+    
+    // Auto-scroll the console
+    if (logs) logs.scrollTop = logs.scrollHeight;
 }
