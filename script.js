@@ -1,37 +1,16 @@
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
 let editor;
-let deco = [];
 
 require(['vs/editor/editor.main'], function() {
-    // 1. Define Professional Theme
-    monaco.editor.defineTheme('midnight-cobalt', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [
-            { token: 'keyword', foreground: '00d4ff', fontStyle: 'bold' },
-            { token: 'variable', foreground: 'e0e0e0' },
-            { token: 'operator', foreground: '569cd6' },
-            { token: 'string', foreground: 'ce9178' },
-            { token: 'comment', foreground: '6a9955' }
-        ],
-        colors: {
-            'editor.background': '#0b0e14',
-            'editor.lineHighlightBackground': '#11151c',
-            'editorCursor.foreground': '#00d4ff',
-            'editorIndentGuide.activeBackground': '#1e2530'
-        }
-    });
-
-    // 2. Register Skript Language
+    // 1. Language Setup
     monaco.languages.register({ id: 'skript' });
     monaco.languages.setMonarchTokensProvider('skript', {
         tokenizer: {
             root: [
                 [/on (join|quit|death|break|place|chat):?/, 'keyword'],
                 [/command \/\w+:?/, 'keyword'],
-                [/if |else |loop |while |return /, 'keyword'],
-                [/set |add |remove |give |send |broadcast |cancel event/, 'operator'],
+                [/set |add |remove |give |send |broadcast/, 'operator'],
                 [/({[^}]+})/, 'variable'],
                 [/"[^"]*"/, 'string'],
                 [/#[^#]*/, 'comment']
@@ -39,46 +18,38 @@ require(['vs/editor/editor.main'], function() {
         }
     });
 
-    // 3. Create Editor
+    // 2. Editor Initialization
     editor = monaco.editor.create(document.getElementById('monaco-editor'), {
-        value: "# SKITMC Skript Repo\non join\n\tsend \"Welcome!\"\n\tgive player 1 diamond",
+        value: "ENTER SKRIPT HERE\n\non join:\n\tsend \"Hello SKITMC!\"",
         language: 'skript',
-        theme: 'midnight-cobalt',
+        theme: 'vs-dark',
         fontFamily: 'JetBrains Mono',
         fontSize: 14,
-        lineNumbersMinChars: 3,
         automaticLayout: true,
         minimap: { enabled: false },
-        padding: { top: 20 }
+        padding: { top: 16 },
+        lineNumbersMinChars: 3
     });
 
-    // Auto-run analysis
+    // Run analysis on change
     editor.onDidChangeModelContent(() => {
-        clearTimeout(window.parseTimer);
-        window.parseTimer = setTimeout(runAnalysis, 800);
+        clearTimeout(window.analysisTimer);
+        window.analysisTimer = setTimeout(runAnalysis, 1000);
     });
 });
-
-function log(msg, type = 'info') {
-    const logs = document.getElementById('console-logs');
-    const color = type === 'error' ? 'text-red-400' : 'text-slate-500';
-    logs.innerHTML += `<div class="${color} border-l border-current pl-3">> ${msg}</div>`;
-    logs.scrollTop = logs.scrollHeight;
-}
 
 function runAnalysis() {
     const code = editor.getValue();
     const lines = code.split('\n');
     let markers = [];
-    let hasError = false;
+    let errorsFound = 0;
 
     lines.forEach((content, i) => {
-        // Simple Logic: If it's a trigger but has no colon
         if ((content.includes('on ') || content.includes('command ')) && !content.trim().endsWith(':')) {
-            hasError = true;
+            errorsFound++;
             markers.push({
                 severity: monaco.MarkerSeverity.Error,
-                message: 'Missing required colon (:) at end of trigger',
+                message: 'Missing colon (:)',
                 startLineNumber: i + 1,
                 startColumn: 1,
                 endLineNumber: i + 1,
@@ -90,37 +61,29 @@ function runAnalysis() {
     monaco.editor.setModelMarkers(editor.getModel(), 'owner', markers);
     
     const led = document.getElementById('status-led');
-    const statusText = document.getElementById('status-text');
+    const text = document.getElementById('status-text');
+    const logs = document.getElementById('console-logs');
 
-    if (hasError) {
-        led.className = "w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]";
-        statusText.innerText = "Errors Detected";
-        log("Syntax Validation Failed", "error");
+    if (errorsFound > 0) {
+        led.className = "w-2 h-2 rounded-full bg-red-500";
+        text.innerText = "Syntax Issues";
+        logs.innerHTML += `<div class="text-red-400">> Found ${errorsFound} formatting error(s)</div>`;
     } else {
-        led.className = "w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_#00d4ff]";
-        statusText.innerText = "All Systems Nominal";
-        log("Validation Successful");
+        led.className = "w-2 h-2 rounded-full bg-green-500";
+        text.innerText = "System Normal";
     }
 }
 
 function applyAutoFix() {
     const model = editor.getModel();
-    let code = model.getValue();
-    const lines = code.split('\n');
-    
-    const fixed = lines.map(l => {
-        if ((l.includes('on ') || l.includes('command ')) && !l.trim().endsWith(':')) {
-            return l + ":";
+    const lines = model.getValue().split('\n');
+    const fixed = lines.map(line => {
+        if ((line.includes('on ') || line.includes('command ')) && !line.trim().endsWith(':')) {
+            return line + ":";
         }
-        return l;
+        return line;
     }).join('\n');
 
-    editor.pushUndoStop(); // Allows user to hit Ctrl+Z to undo the fix
-    editor.executeEdits("fixer", [{
-        range: model.getFullModelRange(),
-        text: fixed
-    }]);
-    
-    log("Auto-Fix applied to triggers", "info");
+    editor.executeEdits("fix", [{ range: model.getFullModelRange(), text: fixed }]);
     runAnalysis();
 }

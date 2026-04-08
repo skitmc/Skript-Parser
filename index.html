@@ -3,87 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript-Parser | Professional IDE</title>
+    <title>Skript-Parser | IDE</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-main: #0b0e14;
-            --bg-side: #11151c;
-            --accent: #00d4ff;
-            --border: #1e2530;
+            --bg-main: #0d1117;
+            --bg-side: #161b22;
+            --border: #30363d;
+            --cyan-accent: #58a6ff;
         }
-        body { background-color: var(--bg-main); color: white; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
+        body { background-color: var(--bg-main); color: #c9d1d9; font-family: 'Inter', sans-serif; height: 100vh; margin: 0; overflow: hidden; }
         
-        /* Professional Animated Logo */
+        /* Clean Professional Logo */
         .logo-text {
             font-weight: 800;
-            letter-spacing: -0.05em;
-            background: linear-gradient(90deg, #fff, var(--accent), #fff);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shine 3s linear infinite;
+            font-size: 1.25rem;
+            color: #ffffff;
+            letter-spacing: -0.02em;
         }
-        @keyframes shine { to { background-position: 200% center; } }
+        .logo-text span { color: var(--cyan-accent); }
 
-        #editor-shell { height: calc(100vh - 64px); }
-        .sidebar { background: var(--bg-side); border-left: 1px solid var(--border); width: 320px; }
+        .sidebar { background: var(--bg-side); border-left: 1px solid var(--border); width: 340px; display: flex; flex-direction: column; }
+        #monaco-editor { flex: 1; height: 100%; }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-thumb { background: #1e2530; border-radius: 10px; }
+        .btn-primary { background: #238636; color: white; transition: 0.2s; }
+        .btn-primary:hover { background: #2ea043; }
+        
+        .btn-secondary { background: #21262d; border: 1px solid var(--border); color: #c9d1d9; transition: 0.2s; }
+        .btn-secondary:hover { background: #30363d; }
 
-        .error-line { background: rgba(239, 68, 68, 0.2); width: 100% !important; }
-        .error-glyph { border-left: 3px solid #ef4444; }
+        .console-box { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #8b949e; }
     </style>
 </head>
 <body class="flex flex-col">
 
-    <header class="h-16 border-b border-[#1e2530] flex items-center justify-between px-8 bg-[#0b0e14] z-50">
-        <div class="flex items-center gap-4">
-            <div class="logo-text text-2xl">SKRIPT-PARSER</div>
-            <span class="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-1 rounded border border-blue-500/20 font-bold tracking-widest">v1.0.4</span>
-        </div>
+    <header class="h-14 flex items-center justify-between px-6 bg-[#161b22] border-b border-[#30363d]">
         <div class="flex items-center gap-3">
-            <button onclick="applyAutoFix()" class="group flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-lg transition-all border border-slate-700">
-                <span>WRENCH_ICON</span> FIX SYNTAX
+            <div class="logo-text">SKRIPT<span>-PARSER</span></div>
+            <span class="text-[10px] text-[#484f58] font-bold border border-[#30363d] px-2 py-0.5 rounded">STABLE</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="applyAutoFix()" class="btn-secondary flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold">
+                <i data-lucide="wrench" class="w-3.5 h-3.5"></i> Fix Syntax
             </button>
-            <button onclick="runAnalysis()" class="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold px-5 py-2 rounded-lg shadow-lg shadow-cyan-900/20 transition-all">
-                ANALYZE ENGINE
+            <button onclick="runAnalysis()" class="btn-primary flex items-center gap-2 px-4 py-1.5 rounded text-xs font-semibold">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i> Run Analysis
             </button>
         </div>
     </header>
 
-    <main id="editor-shell" class="flex flex-1">
-        <div id="monaco-editor" class="flex-1"></div>
+    <main class="flex flex-1 overflow-hidden">
+        <div id="monaco-editor"></div>
 
-        <aside class="sidebar flex flex-col">
-            <div class="p-6 border-b border-[#1e2530]">
-                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Diagnostics</h3>
-                <div id="status-card" class="bg-[#07090d] border border-[#1e2530] p-4 rounded-xl">
-                    <div class="flex items-center gap-3 mb-2">
-                        <div id="status-led" class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div>
-                        <span id="status-text" class="text-xs font-bold text-slate-200">System Standby</span>
+        <aside class="sidebar">
+            <div class="p-5 border-b border-[#30363d]">
+                <div class="text-[10px] font-bold text-[#8b949e] uppercase tracking-widest mb-3">System Health</div>
+                <div class="bg-[#0d1117] border border-[#30363d] rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div id="status-led" class="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span id="status-text" class="text-xs font-bold text-white">Parser Online</span>
                     </div>
-                    <p id="status-desc" class="text-[11px] text-slate-500 leading-relaxed">Parser is ready for input from the SKITMC repository.</p>
-                </div>
-            </div>
-            
-            <div class="p-6 flex-1 overflow-y-auto">
-                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Live Console</h3>
-                <div id="console-logs" class="space-y-3 font-mono text-[10px]">
-                    <div class="text-cyan-500/70 border-l border-cyan-500/30 pl-3">> Parser Kernel Loaded</div>
+                    <p class="text-[11px] text-[#8b949e]">Engine linked to SKITMC repository.</p>
                 </div>
             </div>
 
-            <div class="p-6 border-t border-[#1e2530] text-[10px] text-slate-600 italic leading-snug">
-                This community-driven project supports the official **SKITMC** repository development.
+            <div class="flex-1 p-5 overflow-y-auto">
+                <div class="text-[10px] font-bold text-[#8b949e] uppercase tracking-widest mb-3">Console</div>
+                <div id="console-logs" class="console-box space-y-2">
+                    <div class="opacity-50">> Initializing workspace...</div>
+                </div>
+            </div>
+
+            <div class="p-5 text-[10px] text-[#484f58] border-t border-[#30363d]">
+                This community project supports the **SKITMC** repository development effort.
             </div>
         </aside>
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
     <script src="script.js"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
