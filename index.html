@@ -3,27 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript-Parser | Online Editor</title>
+    <title>Skript-Parser | IDE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body, html { height: 100%; margin: 0; background-color: #1e1e1e; color: white; overflow: hidden; }
-        #container { height: calc(100vh - 60px); width: 100%; }
-        .footer { position: absolute; bottom: 15px; right: 20px; font-size: 0.85rem; color: #888; }
+        body, html { height: 100%; margin: 0; background-color: #1e1e1e; color: white; font-family: 'Inter', sans-serif; overflow: hidden; }
+        #container { flex-grow: 1; height: 100%; }
+        
+        /* Animated Logo */
+        @keyframes flow {
+            0% { color: #22d3ee; text-shadow: 0 0 10px #22d3ee; }
+            50% { color: #ffffff; text-shadow: 0 0 2px #ffffff; }
+            100% { color: #22d3ee; text-shadow: 0 0 10px #22d3ee; }
+        }
+        .logo-anim span { display: inline-block; animation: flow 2s infinite; }
+        .logo-anim span:nth-child(even) { animation-delay: 1s; }
+
+        /* Error Underline Style */
+        .error-underline { border-bottom: 2px wavy #ef4444; position: absolute; }
+        
+        .sidebar { width: 300px; background: #252526; border-left: 1px solid #333; padding: 20px; }
+        .footer { position: fixed; bottom: 10px; right: 320px; font-size: 0.75rem; color: #666; pointer-events: none; }
     </style>
 </head>
-<body>
+<body class="flex flex-col">
 
-    <nav class="flex items-center justify-between px-6 py-3 bg-[#252526] border-b border-[#333]">
-        <h1 class="text-xl font-bold tracking-tight text-blue-400">Skript-Parser</h1>
-        <div class="space-x-4">
-            <button onclick="checkSyntax()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1 rounded transition">Analyze Code</button>
+    <nav class="flex items-center justify-between px-6 py-3 bg-[#252526] border-b border-[#333] z-10">
+        <div class="logo-anim text-xl font-black tracking-widest uppercase">
+            <span>S</span><span>k</span><span>r</span><span>i</span><span>p</span><span>t</span><span>-</span><span>P</span><span>a</span><span>r</span><span>s</span><span>e</span><span>r</span>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="fixCode()" class="bg-amber-600 hover:bg-amber-500 text-xs font-bold px-4 py-2 rounded transition uppercase">Auto-Fix</button>
+            <button onclick="analyze()" class="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-4 py-2 rounded transition uppercase">Check Syntax</button>
         </div>
     </nav>
 
-    <div id="container"></div>
+    <main class="flex flex-1 overflow-hidden">
+        <div id="container"></div>
+
+        <aside class="sidebar flex flex-col gap-4">
+            <h2 class="text-blue-400 font-bold text-sm uppercase tracking-tighter">System Status</h2>
+            <div id="status-box" class="bg-[#1e1e1e] p-3 rounded border border-[#444] text-xs font-mono text-gray-400">
+                Waiting for input...
+            </div>
+            
+            <h2 class="text-blue-400 font-bold text-sm uppercase tracking-tighter mt-4">Analysis Log</h2>
+            <div id="log-box" class="flex-1 overflow-y-auto text-[10px] space-y-2 text-gray-500">
+                <div>> Engine initialized...</div>
+                <div>> Ready for SKITMC repository support.</div>
+            </div>
+        </aside>
+    </main>
 
     <div class="footer">
-        This is a community-based project to help with the skript repository that <strong>SKITMC</strong> is currently developing.
+        This is a community-based project to help with a skript repository that SKITMC is working on.
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
